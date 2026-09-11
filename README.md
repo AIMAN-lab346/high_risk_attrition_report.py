@@ -1,4 +1,46 @@
-# high_risk_attrition_report.py
+
+1#fraud_detection
+import pandas as pd
+import numpy as np
+from sklearn.ensemble import IsolationForest
+
+# 1. Generate Synthetic Financial Transaction Data
+np.random.seed(42)
+n_records = 1000
+
+data = {
+    'transaction_id': range(1001, 1001 + n_records),
+    'amount': np.random.exponential(scale=100, size=n_records),
+    'transaction_hour': np.random.randint(0, 24, size=n_records),
+    'merchant_category': np.random.choice(['Grocery', 'Electronics', 'Food', 'Travel', 'Clothing'], size=n_records),
+    'foreign_transaction': np.random.choice([0, 1], size=n_records, p=[0.9, 0.1])
+}
+
+df = pd.DataFrame(data)
+
+# Inject synthetic anomaly/fraud cases
+df.loc[15, 'amount'] = 8500.00
+df.loc[42, 'amount'] = 9200.50
+df.loc[108, 'amount'] = 6700.00
+
+# 2. Anomaly Detection Engine
+features = df[['amount', 'transaction_hour', 'foreign_transaction']]
+
+model = IsolationForest(contamination=0.005, random_state=42)
+df['anomaly_score'] = model.fit_predict(features)
+
+# Isolation Forest tags outliers as -1
+df['is_flagged_fraud'] = df['anomaly_score'].apply(lambda x: 1 if x == -1 else 0)
+
+# 3. Export High-Risk Audit Output
+flagged_records = df[df['is_flagged_fraud'] == 1]
+flagged_records.to_csv("flagged_fraud_audit.csv", index=False)
+
+print(f"Audit Complete: {len(flagged_records)} suspicious transactions flagged and saved to 'flagged_fraud_audit.csv'.")
+
+
+
+2# high_risk_attrition_report.py
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
